@@ -8,10 +8,38 @@ export type StepState = 'todo' | 'doing' | 'done'
 export interface Row { id: string; v: Record<string, string>; at: string }
 export interface EvidenceItem { id: string; name: string; mime: string; size: number; caption: string; pageId: number; sectionId: string; addedAt: string; path?: string }
 export type IssueType = 'Unsupported assumption' | 'Possible error' | 'Open design choice' | 'Needs context' | 'Incomplete' | 'Missing evidence'
-export interface ThreadMsg { role: 'mentor' | 'student'; text: string; at: string }
+export type ThreadMsg = {
+  role: 'mentor' | 'student' | 'hint'
+  text: string
+  at: string
+  evaluationState?: 'resolved' | 'needs_clarification' | 'incorrect' | 'non_answer' | 'needs_verification' | 'unresolved'
+}
 export type QStatus = 'open' | 'resolved' | 'gap' | 'skipped' | 'disputed'
-export interface MentorQuestion { id: string; pageId: number; type: IssueType; quote?: string; text: string; status: QStatus; followups: number; thread: ThreadMsg[] }
-export interface MentorSession { id: string; pageId: number; startedAt: string; endedAt?: string; questions: MentorQuestion[] }
+export interface MentorQuestion {
+  id: string
+  pageId: number
+  type: IssueType
+  quote?: string
+  text: string
+  status: QStatus
+  followups: number
+  thread: ThreadMsg[]
+  evaluationState?: 'resolved' | 'needs_clarification' | 'incorrect' | 'non_answer' | 'needs_verification' | 'unresolved'
+  lens?: string
+  category?: 'determinate' | 'tradeoff' | 'evidence' | string
+  rationale?: any
+  hintsGiven?: number
+  hints?: string[]
+}
+export interface MentorSession {
+  id: string
+  pageId: number
+  startedAt: string
+  endedAt?: string
+  questions: MentorQuestion[]
+  memory?: any
+  activeQuestionIndex?: number
+}
 /** `real` = Supabase-authenticated student with a persisted team workspace; `demo` = local seeded presentation project. */
 export interface Session { email: string; name: string; mode: 'real' | 'demo'; userId?: string }
 export type Submission = { status: 'draft' } | { status: 'submitted'; at: string; reviewId: string }

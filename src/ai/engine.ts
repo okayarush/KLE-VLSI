@@ -138,36 +138,56 @@ export function analysePortfolio(c: Content, onlyLive: number[]): Analysis {
 
 /* ---------------- AI Mentor ---------------- */
 
-const BANK: Record<number, { type: IssueType; text: string }[]> = {
-  2: [{ type: 'Open design choice', text: 'Why is the lowest input level in your design inputs the limiting case — what happens at the other end of the range?' }],
-  3: [{ type: 'Open design choice', text: 'Which criterion in your comparison would change the winner if its weight doubled?' }],
-  4: [{ type: 'Needs context', text: 'Pick your tightest requirement. How did you decide that target rather than a looser one?' }],
-  5: [{ type: 'Open design choice', text: 'If one block failed completely, which requirement breaks first, and how would you know?' }],
-  6: [{ type: 'Possible error', text: 'Walk me through one calculation: which assumption would most change the result if it were wrong?' }],
-  9: [{ type: 'Needs context', text: 'For the requirement with the largest deviation, what is your explanation, and how would you test it?' }],
-  10: [{ type: 'Open design choice', text: 'In your most recent failure, how do you know the root cause is the cause, not a symptom?' }],
-}
+import { buildStructuredProject } from './projectContext'
+import { generateSmartFallbackQuestions } from './questionEngine'
+import { evaluateAnswerOffline } from './answerEvaluator'
 
 export function mentorQuestionsFor(p: PageDef, c: Content): MentorQuestion[] | 'insufficient' {
   if (pageProgress(p, c).pct < 15) return 'insufficient'
-  const fromInsights = insightsForPage(p, c).filter((i) => i.question).slice(0, 3)
-  const qs: Omit<MentorQuestion, 'id' | 'status' | 'followups' | 'thread' | 'pageId'>[] = [
-    ...fromInsights.map((i) => ({ type: i.type, quote: i.quote, text: i.question! })),
-    ...(BANK[p.id] ?? [{ type: 'Open design choice' as IssueType, text: `What is the single decision on “${p.title}” you are least sure about, and what would you need to settle it?` }]),
-  ]
-  return qs.slice(0, 4).map((q) => ({ ...q, id: crypto.randomUUID(), pageId: p.id, status: 'open' as const, followups: 0, thread: [] }))
+  const project = buildStructuredProject(c)
+  return generateSmartFallbackQuestions(p, c, project)
 }
 
 /** Proposed default from D-06 (follow-ups per issue, pending faculty confirmation). */
 export const MAX_FOLLOWUPS = 3
 
-export function evaluateReply(text: string, followups: number): { verdict: 'resolved' | 'followup' | 'gap'; reply: string } {
-  const w = words(text)
-  const specific = /\d/.test(text) || JUSTIFY.test(text)
-  if (w >= 20 && specific) return { verdict: 'resolved', reply: 'That gives a concrete basis for the decision. I have noted it as resolved. Consider writing the same reasoning into the page so a reader sees it without asking.' }
-  if (followups + 1 >= MAX_FOLLOWUPS) return { verdict: 'gap', reply: 'Let us park this one. I have recorded it as a gap to revisit — it will show in your end-of-session summary. Nothing here is a mark or a verdict on you.' }
-  if (w < 12) return { verdict: 'followup', reply: 'Could you be more specific? Name the value, the calculation step or the source you are relying on.' }
-  return { verdict: 'followup', reply: 'You have described the idea. What number or measurement would show that it holds in your design?' }
+/**
+ * Evaluates student answers in offline / simulated fallback mode.
+ * CRITICAL FIX: Never resolves purely on word count or presence of "because".
+ */
+export function evaluateReply(
+  text: string,
+  followups: number,
+  question?: MentorQuestion,
+): { verdict: 'resolved' | 'followup' | 'gap'; reply: string; rawVerdict?: string } {
+  const dummyQ: MentorQuestion = question ?? {
+    id: 'offline',
+    pageId: 2,
+    type: 'Open design choice',
+    text: 'Explain your engineering reasoning.',
+    status: 'open',
+    followups,
+    thread: [],
+  }
+
+  const result = evaluateAnswerOffline(text, dummyQ, followups)
+
+  // Map 6-tier evaluation state to legacy 'resolved' | 'followup' | 'gap' for backward compatibility
+  let legacyVerdict: 'resolved' | 'followup' | 'gap' = 'followup'
+  if (result.verdict === 'resolved') {
+    legacyVerdict = 'resolved'
+  } else if (result.verdict === 'unresolved') {
+    legacyVerdict = 'gap'
+  } else {
+    // needs_clarification, incorrect, non_answer, needs_verification stay in follow-up mode
+    legacyVerdict = 'followup'
+  }
+
+  return {
+    verdict: legacyVerdict,
+    reply: result.reply,
+    rawVerdict: result.verdict,
+  }
 }
 
 export const AI_LABEL = 'Simulated preview — real AI is not connected yet'

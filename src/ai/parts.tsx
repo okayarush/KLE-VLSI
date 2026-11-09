@@ -1,23 +1,67 @@
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { AlertTriangle, CircleHelp, FileQuestion, FileWarning, Lightbulb, ScanSearch, Sparkles, Info } from 'lucide-react'
 import type { IssueType } from '../state/store'
 import type { Insight } from './engine'
+import { getAiStatus, type AiStatus } from './groq'
 
 /** Reserved AI hue, used ONLY for AI content (DESIGN_GUIDELINES: --ai). */
-export function AIBadge({ simulated = true }: { simulated?: boolean }) {
+export function AIBadge({ simulated }: { simulated?: boolean }) {
+  const [status, setStatus] = useState<AiStatus | null>(null)
+
+  useEffect(() => {
+    getAiStatus().then(setStatus)
+  }, [])
+
+  const isLive = simulated === false || (status?.configured ?? false)
+  const label = isLive ? 'AI Mentor · Groq Llama 3.3' : 'AI · simulated preview'
+
   return (
-    <span className="ai-badge" title={simulated ? 'Simulated preview — real AI is not connected yet' : undefined}>
-      <Sparkles size={13} /> AI {simulated && <i>· simulated preview</i>}
+    <span
+      className={`ai-badge ${isLive ? 'ai-live' : ''}`}
+      title={isLive ? 'Connected to Groq LPU (Llama 3.3 70B)' : 'Simulated preview mode'}
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+    >
+      <Sparkles size={13} />
+      <span>{label}</span>
+      {isLive && (
+        <span
+          style={{
+            width: 7,
+            height: 7,
+            borderRadius: '50%',
+            backgroundColor: '#10b981',
+            display: 'inline-block',
+          }}
+          title="Online"
+        />
+      )}
     </span>
   )
 }
 
-export function AIBanner({ children }: { children?: ReactNode }) {
+export function AIBanner({ children, simulated }: { children?: ReactNode; simulated?: boolean }) {
+  const [status, setStatus] = useState<AiStatus | null>(null)
+
+  useEffect(() => {
+    getAiStatus().then(setStatus)
+  }, [])
+
+  const isLive = simulated === false || (status?.configured ?? false)
+
   return (
     <div className="banner banner-ai" role="note">
       <Info size={18} />
       <div>
-        <b>Simulated preview — real AI is not connected yet.</b> {children ?? <><b>AI insight — advisory only.</b> It is not an official evaluation, carries no marks, and does not replace faculty review. Your assigned faculty decide gates and assessment.</>}
+        {isLive ? (
+          <b>AI Mentor active (Groq Llama 3.3 70B). </b>
+        ) : (
+          <b>Simulated preview (Groq key not configured). </b>
+        )}
+        {children ?? (
+          <>
+            <b>AI insight — advisory only.</b> It is not an official evaluation, carries no marks, and does not replace faculty review. Your assigned faculty decide gates and assessment.
+          </>
+        )}
       </div>
     </div>
   )

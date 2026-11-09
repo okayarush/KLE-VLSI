@@ -5,6 +5,7 @@ import type { PageDef } from '../data/pages'
 import { sectionProgress, type Content } from '../lib/progress'
 import { useStore } from '../state/store'
 import { insightsForPage } from './engine'
+import { getAiStatus, type AiStatus } from './groq'
 
 interface CheckItem {
   id: string
@@ -70,13 +71,18 @@ function checksForPage(page: PageDef, c: Content): CheckItem[] {
 export function AIPanel({ page, content, onGo }: { page: PageDef; content: Content; onGo: (sectionId?: string) => void }) {
   const [tab, setTab] = useState<'insights' | 'questions' | 'improve'>('insights')
   const [busy, setBusy] = useState(false)
+  const [aiStatus, setAiStatus] = useState<AiStatus | null>(null)
   const dismissed = useStore((s) => s.dismissedInsights)
   const dismiss = useStore((s) => s.dismissInsight)
   const mentor = useStore((s) => s.mentor)
 
   useEffect(() => {
+    getAiStatus().then(setAiStatus)
+  }, [])
+
+  useEffect(() => {
     setBusy(true)
-    const t = setTimeout(() => setBusy(false), 420)
+    const t = setTimeout(() => setBusy(false), 350)
     return () => clearTimeout(t)
   }, [page.id])
 
@@ -92,13 +98,20 @@ export function AIPanel({ page, content, onGo }: { page: PageDef; content: Conte
 
   const suggestion = SUGGESTIONS[page.id] ?? insights[0]?.detail ?? 'Keep documenting your engineering reasoning with measured quantities and dated evidence.'
 
+  const isLive = aiStatus?.configured ?? false
+
   return (
     <aside className="mp" aria-label="AI Mentor contextual assistant">
       <div className="mp-head">
         <div className="mp-title">
-          <h2><Sparkles size={20} /> AI Mentor <span className="chip chip-ai" style={{ fontSize: 10, marginLeft: 6 }}>Simulated preview</span></h2>
+          <h2>
+            <Sparkles size={20} /> AI Mentor{' '}
+            <span className="chip chip-ai" style={{ fontSize: 10, marginLeft: 6 }}>
+              {isLive ? 'Groq Llama 3.3' : 'Simulated'}
+            </span>
+          </h2>
           <span className={`mp-ready ${busy ? 'busy' : ''}`} aria-live="polite">
-            <i /> {busy ? 'Reading page…' : 'Simulated'}
+            <i /> {busy ? 'Reading page…' : isLive ? 'Ready' : 'Offline rules'}
           </span>
         </div>
 
@@ -207,7 +220,7 @@ export function AIPanel({ page, content, onGo }: { page: PageDef; content: Conte
               <div className="mp-card">
                 <h3><Check size={17} /> All Automated Checks Clear</h3>
                 <p style={{ fontSize: 13.5, color: 'var(--text-2)', lineHeight: 1.55 }}>
-                  Nothing flagged by client-side checks on this page. Consider adding a captioned figure or measurement trace to strengthen your evidence.
+                  Nothing flagged by automated checks on this page. Consider adding a captioned figure or measurement trace to strengthen your evidence.
                 </p>
               </div>
             )}

@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useLocation, useParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowLeft, ArrowRight, Check, ChevronDown, Loader2, Save, Sparkles, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, Loader2, Save, Sparkles, X } from 'lucide-react'
 import { Bar } from '../../../design-system'
 import { AIPanel } from '../../../ai/AIPanel'
 import { PAGES, pageBySlug, type SectionDef } from '../../../data/pages'
 import { firstReviewOf } from '../../../data/handbook'
-import { overall, pageProgress, sectionProgress } from '../../../lib/progress'
+import { overall, pageProgress, sectionGap, sectionProgress } from '../../../lib/progress'
 import { useStore } from '../../../state/store'
 import { useContent } from '../hooks'
 import { PAGE_OVERVIEWS, PageArt } from './overview'
 import { ComparisonMatrixEditor, EvidenceStrip, ProseEditor, RowsEditor } from './Sections'
+import { Info } from './guide'
 
 /** Editorial display titles & descriptions matching the KLE UI specification. */
 const PAGE_META: Record<number, { heading?: string; lede: string; tabs?: Record<string, string> }> = {
@@ -33,7 +34,7 @@ const PAGE_META: Record<number, { heading?: string; lede: string; tabs?: Record<
       alts: 'Alternatives',
       compare: 'Comparison',
       selected: 'Selected Concept',
-      scope: 'Justification',
+      scope: 'Scope: In and Out',
     },
   },
   4: {
@@ -131,6 +132,12 @@ export function PageEditor() {
   const doneCount = readyCount
   const pctComplete = overall(c)
   const canComplete = pp.status === 'ready'
+  const todo = page.sections.flatMap((sec, i) => (pp.parts[i] < 0.999 ? [`${shortTabLabel(page.id, sec)} (${sectionGap(page, sec, c)})`] : []))
+  const completeHelp = isCompleted
+    ? 'This page is marked complete. Click “Completed” to reopen it as a draft.'
+    : canComplete
+      ? 'Every section is filled in. Click to mark this page complete; you can reopen it later.'
+      : `Not available yet. Still to do: ${todo.join('; ')}.`
 
   const handleSave = () => { void markSaved() }
 
@@ -155,7 +162,6 @@ export function PageEditor() {
           <span className={`state-pill ${isCompleted ? 'complete' : ''}`}>
             <i />
             {isCompleted ? 'Complete' : 'Draft'}
-            <ChevronDown size={13} style={{ opacity: 0.6 }} />
           </span>
           <button type="button" className="act" onClick={handleSave}>
             {saveStatus === 'saving' ? <Loader2 size={15} className="spin" /> : saveStatus === 'saved' ? <Check size={15} /> : <Save size={15} />}
@@ -165,12 +171,12 @@ export function PageEditor() {
             type="button"
             className={`act solid ${isCompleted ? 'done' : ''}`}
             disabled={!isCompleted && !canComplete}
-            title={!isCompleted && !canComplete ? 'Fill in every section of this page to mark it complete' : undefined}
             onClick={() => toggleComplete(page.id)}
           >
             <Check size={15} strokeWidth={2.6} />
             <span className="lb">{isCompleted ? 'Completed' : 'Mark as Complete'}</span>
           </button>
+          <Info text={completeHelp} label={isCompleted ? 'About reopening this page' : 'Why can’t I mark this page complete?'} />
         </div>
       </div>
 

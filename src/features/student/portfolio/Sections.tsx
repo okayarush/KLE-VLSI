@@ -1,4 +1,5 @@
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useState, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import { CheckCircle2, ChevronDown, FileText, Film, ImageIcon, Paperclip, Plus, Trash2 } from 'lucide-react'
 import { Button, Chip } from '../../../design-system'
 import type { FieldDef, PageDef, ProseSection, RowsSection, EvidenceSection } from '../../../data/pages'
@@ -7,6 +8,7 @@ import { demoPreviews } from '../../../lib/previews'
 import { evidenceUrls } from '../../../state/remote'
 import { key, useStore, type EvidenceItem, type Row } from '../../../state/store'
 import { AttachDialog } from '../AttachDialog'
+import { Info, norm, pagePath } from './guide'
 
 const RichText = lazy(() => import('./RichText'))
 
@@ -125,10 +127,23 @@ export function ComparisonMatrixEditor() {
 /* ---------- repeating rows (tables / cards) ---------- */
 function FieldInput({ f, value, onChange, idBase }: { f: FieldDef; value: string; onChange: (v: string) => void; idBase: string }) {
   const id = `${idBase}-${f.id}`
+  const frRows = useStore((st) => st.rows['4.frtable'])
+  // Fields that carry help / a note / FR suggestions get a small label row; all other fields render exactly as before.
+  const refined = !!(f.help || f.note || f.suggest)
+  const frNos = f.suggest === 'fr' ? (frRows ?? []).map((r) => (r.v.no ?? '').trim()).filter(Boolean) : []
+  const missingFr = f.suggest === 'fr' && !!value.trim() && !frNos.some((n) => norm(n) === norm(value))
+  const labelRow = (label: ReactNode): ReactNode => refined ? (
+    <span className="flabel">
+      {label}
+      {f.note && <span className="fnote">{f.note}</span>}
+      {f.help && <Info text={f.help} label={`About ${f.label}`} />}
+      {missingFr && <Link className="fwarn" to={pagePath(4)} title="This number is not in the Functional Requirements table. Open that table to add or correct it.">{frNos.length ? 'Not in the FR table' : 'FR table is empty'} →</Link>}
+    </span>
+  ) : label
   if (f.kind === 'select' && f.chip)
     return (
       <div className="field" style={f.wide ? { gridColumn: '1 / -1' } : undefined}>
-        <span className="label" id={`${id}-l`}>{f.label}{f.required && ' *'}</span>
+        {labelRow(<span className="label" id={`${id}-l`}>{f.label}{f.required && ' *'}</span>)}
         <div className="seg" role="radiogroup" aria-labelledby={`${id}-l`}>
           {f.options!.map((o) => <button key={o} type="button" role="radio" aria-checked={value === o} className={`seg-${o} ${value === o ? 'on' : ''}`} onClick={() => onChange(o)}>{o}</button>)}
         </div>
@@ -136,10 +151,11 @@ function FieldInput({ f, value, onChange, idBase }: { f: FieldDef; value: string
     )
   return (
     <div className="field" style={f.wide ? { gridColumn: '1 / -1' } : undefined}>
-      <label htmlFor={id}>{f.label}{f.required && ' *'}</label>
+      {labelRow(<label htmlFor={id}>{f.label}{f.required && ' *'}</label>)}
       {f.kind === 'long' ? <textarea id={id} className="textarea" style={{ minHeight: 72 }} value={value} placeholder={f.placeholder} onChange={(e) => onChange(e.target.value)} />
         : f.kind === 'select' ? <select id={id} className="select" value={value} onChange={(e) => onChange(e.target.value)}><option value="">Choose…</option>{f.options!.map((o) => <option key={o}>{o}</option>)}</select>
-        : <input id={id} className="input" type={f.kind === 'date' ? 'date' : 'text'} value={value} placeholder={f.placeholder} onChange={(e) => onChange(e.target.value)} />}
+        : <input id={id} className="input" type={f.kind === 'date' ? 'date' : 'text'} value={value} placeholder={f.placeholder} list={f.suggest ? `${id}-dl` : undefined} onChange={(e) => onChange(e.target.value)} />}
+      {f.suggest && <datalist id={`${id}-dl`}>{frNos.map((n) => <option key={n} value={n} />)}</datalist>}
     </div>
   )
 }
@@ -197,7 +213,8 @@ export function RowsEditor({ page, sec }: { page: PageDef; sec: RowsSection }) {
       )}
       {rows.map((r, i) => <RowCard key={r.id} page={page} sec={sec} row={r} index={i} defaultOpen={rows.length <= 3 || !!sec.fields.some((f) => f.required && !(r.v[f.id] ?? '').trim())} />)}
       <div className="row"><Button variant="ghost" size="sm" onClick={addOne}><Plus size={15} /> Add {sec.itemLabel.toLowerCase()}</Button>
-        {(sec.minRows ?? 0) > 0 && <span className="hint">{Math.min(rows.length, sec.minRows!)} of {sec.minRows} expected</span>}</div>
+        {(sec.minRows ?? 0) > 0 && <span className="hint">{Math.min(rows.length, sec.minRows!)} of {sec.minRows} expected</span>}
+        {sec.fields.some((fl) => fl.help) && <span className="req-legend">* required · hover, focus or tap ⓘ for help</span>}</div>
     </div>
   )
 }

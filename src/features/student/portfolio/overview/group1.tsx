@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Check, CheckCircle2, Circle, Crown, Mail, MinusCircle, Quote, Camera } from 'lucide-react'
+import { ArrowRight, Check, CheckCircle2, Circle, Crown, Mail, MinusCircle, Quote, Camera } from 'lucide-react'
 import { DesignChain } from '../../../../design-system/DesignChain'
 import { PAGES } from '../../../../data/pages'
 import { REVIEWS, reviewIndex } from '../../../../data/handbook'
@@ -8,7 +8,8 @@ import { readinessFor } from '../../../../lib/readiness'
 import { useStore } from '../../../../state/store'
 import { useTeam } from '../../hooks'
 import { ConceptGlyph, DynamicRangeDiagram, SignalChainBlueprint, SubsystemTopologyDiagram } from './art'
-import { Avatar, Blank, Evidences, OvSection, Rich, Tag, filled, proseOf, rowsOf, sentences, type OvProps } from './kit'
+import { Avatar, Blank, Evidences, OvSection, PageLink, Rich, Tag, filled, proseOf, rowsOf, sentences, type OvProps } from './kit'
+import { Info, SourceBadge } from '../guide'
 
 /* ------------------------------------------------------------------ Home */
 export function HomeOv({ c, edit }: OvProps) {
@@ -145,7 +146,7 @@ export function NeedOv({ c, edit }: OvProps) {
   inputs.forEach((r) => { if (r.v.provenance in prov) prov[r.v.provenance]++ })
   return (
     <div className="ov">
-      <DynamicRangeDiagram inputs={inputs.map((r) => ({ parameter: r.v.parameter, value: r.v.value, provenance: r.v.provenance }))} />
+      <DynamicRangeDiagram inputs={inputs.map((r) => ({ parameter: r.v.parameter, value: r.v.value, provenance: r.v.provenance }))} onAdd={() => edit('inputs')} />
 
       <OvSection no="2.1" title="Need statement" sub="Who needs what, why, and how you know — in measurable terms." onEdit={() => edit('need')}>
         {need ? (
@@ -157,13 +158,16 @@ export function NeedOv({ c, edit }: OvProps) {
       </OvSection>
 
       <OvSection no="2.2" title="Quantified design inputs" sub="Numbers that constrain the design — with where each came from." onEdit={() => edit('inputs')}
-        aside={inputs.length > 0 && <div className="provbar" title="Provenance of design inputs">
-          {(['measured', 'datasheet', 'assumed'] as const).map((k) => prov[k] > 0 && <span key={k} className={k} style={{ flex: prov[k] }}>{prov[k]} {k}</span>)}
-        </div>}>
+        aside={inputs.length > 0 && <>
+          <SourceBadge kind="calc" info="Counted automatically from the Provenance column below: how many of your numbers were measured, taken from a datasheet, or assumed.">Auto-counted</SourceBadge>
+          <div className="provbar" title="Provenance of design inputs">
+            {(['measured', 'datasheet', 'assumed'] as const).map((k) => prov[k] > 0 && <span key={k} className={k} style={{ flex: prov[k] }}>{prov[k]} {k}</span>)}
+          </div>
+        </>}>
         {inputs.length ? (
           <div className="dt-wrap">
             <table className="dt">
-              <thead><tr><th>Parameter</th><th>Value and unit</th><th>Provenance</th><th>Source / how obtained</th></tr></thead>
+              <thead><tr><th>Parameter</th><th>Value and unit</th><th>Provenance<Info text="How you know the number. Measured: you took it on the bench. Datasheet: it comes from a manufacturer's datasheet. Assumed: it is your own estimate, so say what it is based on." label="About Provenance" /></th><th>Source / how obtained</th></tr></thead>
               <tbody>{inputs.map((r) => (
                 <tr key={r.id}>
                   <td><b>{r.v.parameter || '—'}</b></td>
@@ -181,14 +185,15 @@ export function NeedOv({ c, edit }: OvProps) {
         {bg ? <ul className="bullets">{sentences(bg).map((s, i) => <li key={i}>{s}</li>)}</ul> : <Blank title="No background study yet" cta="Write the background study" onClick={() => edit('background')} />}
       </OvSection>
 
-      <OvSection no="2.4" title="Three candidate functional requirements" sub="Vague wording is fine to start — then make it measurable." onEdit={() => edit('candfr')}>
+      <OvSection no="2.4" title="Three candidate functional requirements" sub="Vague wording is fine to start — then make it measurable." onEdit={() => edit('candfr')}
+        aside={cand.length > 0 && <PageLink pageId={4} slug="functional-requirements">Next: formalise them on Page 04</PageLink>}>
         {cand.length ? (
           <div className="frgrid">
             {cand.map((r, i) => (
               <article key={r.id} className={`frc ${filled(r.v.target) ? '' : 'vague'}`}>
                 <span className="n">C{i + 1}</span>
                 <p>{r.v.statement}</p>
-                {filled(r.v.target) ? <div className="tg"><small>Target</small><b className="mono">{r.v.target}</b></div> : <div className="tg warn"><small>Target</small><em>Not yet quantified</em></div>}
+                {filled(r.v.target) ? <div className="tg"><small>Target</small><b className="mono">{r.v.target}</b></div> : <div className="tg warn"><small>Target</small><button type="button" className="linkish" onClick={() => edit('candfr')} title="Add a number with a unit so this requirement can be tested">Not yet quantified — add a target <ArrowRight size={12} /></button></div>}
                 <div className="mt"><small>Measured by</small>{r.v.method || <span className="dash">—</span>}</div>
               </article>
             ))}

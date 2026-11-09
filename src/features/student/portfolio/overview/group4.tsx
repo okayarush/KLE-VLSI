@@ -80,7 +80,7 @@ export function ReflectOv({ c, edit }: OvProps) {
               </article>
             ))}
           </div>
-        ) : <Blank title="No reflections yet" text="Reflections are private-by-default and finalised at the Final Review." cta="Add a reflection" onClick={() => edit('reflect')} />}
+        ) : <Blank title="No reflections yet" text="Reflections are saved in your team’s workspace, where your team and your assigned faculty can read them. Page 13 is finalised at the Final Review." cta="Add a reflection" onClick={() => edit('reflect')} />}
       </OvSection>
       <div className="two">
         <OvSection no="13.2" title="Lessons for the next cohort" onEdit={() => edit('lessons')}>

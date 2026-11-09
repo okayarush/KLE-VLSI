@@ -1,5 +1,5 @@
 import type { ReviewId } from '../data/handbook'
-import { completeRows, skey, words, type Content } from './progress'
+import { completeRows, matrixProgress, skey, words, type Content } from './progress'
 import { PAGES, type RowsSection } from '../data/pages'
 
 /**
@@ -30,7 +30,7 @@ export function readinessFor(r: ReviewId, c: Content): Criterion[] {
     ]
     case 'R2': return [
       { id: 'alts', text: 'At least 3 concepts documented, rejected ones included', cite: cite('Review 2'), page: 3, status: ok(complete(c, 3, 'alts').length >= 3) },
-      { id: 'cmp', text: 'Concepts compared (Pugh matrix / weighted criteria)', cite: cite('Review 2'), page: 3, status: ok(words(c.prose['3.compare']) >= 30) },
+      { id: 'cmp', text: 'Concepts compared (Pugh matrix / weighted criteria)', cite: cite('Review 2'), page: 3, status: ok(matrixProgress(c).complete) },
       { id: 'sel', text: 'Selected concept stated with rationale', cite: cite('Review 2'), page: 3, status: ok(words(c.prose['3.selected']) >= 40) },
       { id: 'scope', text: 'Scope in and out stated', cite: cite('Review 2'), page: 3, status: ok(words(c.prose['3.scope']) >= 20) },
       { id: 'sketch', text: 'Sketches attached as evidence', cite: 'Proposal §4', page: 3, status: ok(ev(c, 3, 'alts')) },

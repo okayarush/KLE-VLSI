@@ -148,11 +148,103 @@ html:has(.landing) { scroll-behavior: smooth; }
 @media (max-width: 800px) { .foot-main { grid-template-columns: 1fr; padding-left: var(--pad); } .board { justify-self: start; max-width: 420px; } }
 
 /* ---------- sign in ---------- */
-.auth { min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; }
-.auth-side { position: relative; overflow: hidden; background: radial-gradient(900px 500px at 20% 0%, #1f3377 0%, transparent 60%), #0a1026; color: #e9edfa; padding: clamp(28px, 5vw, 64px); display: flex; flex-direction: column; justify-content: space-between; gap: 32px; }
-.auth-side h2 { font-size: clamp(28px, 3.6vw, 44px); color: #f2f5ff; max-width: 16ch; }
-.auth-side h2 em { color: #f4a259; }
-.auth-form { display: grid; place-items: center; padding: 28px; }
+.auth { min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; background: #ffffff; }
+.auth-side {
+  position: relative;
+  overflow: hidden;
+  background:
+    #fdf9f6
+    linear-gradient(#f3e7e1 1px, transparent 1px) 0 0 / 24px 24px,
+    linear-gradient(90deg, #f3e7e1 1px, transparent 1px) 0 0 / 24px 24px;
+  border-right: 1px solid #ebdcd5;
+  color: #161414;
+  padding: clamp(24px, 3.4vw, 40px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(16px, 2.2vw, 24px);
+}
+.auth-side h2 { font-size: clamp(24px, 2.8vw, 36px); color: #161414; max-width: 16ch; font-weight: 700; line-height: 1.15; }
+.auth-side h2 em { color: #9a1b24; }
+
+/* -- header: official lockup + programme/year, the one brand mark on the page -- */
+.auth-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex: none;
+}
+.auth-header-meta {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: var(--font-display, Georgia, serif);
+}
+.auth-header-programme { font-size: 13.5px; font-weight: 700; color: #161414; line-height: 1.3; }
+.auth-header-year { font-size: 11.5px; color: #938782; letter-spacing: 0.02em; }
+
+.auth-intro { flex: none; }
+
+/* -- hero: the campus building, framed whole rather than cropped into a strip -- */
+.auth-hero {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  border-radius: 22px;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 140% at 15% 10%, rgba(154, 27, 36, 0.08), transparent 55%),
+    radial-gradient(120% 140% at 100% 100%, rgba(224, 142, 54, 0.10), transparent 55%),
+    #fff;
+  box-shadow: 0 18px 44px -18px rgba(90, 20, 25, 0.22), 0 0 0 1px rgba(220, 200, 190, 0.9);
+  display: flex;
+}
+.auth-hero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+  padding: 18px;
+  display: block;
+}
+.auth-hero-caption {
+  position: absolute;
+  bottom: 14px;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(224, 212, 204, 0.9);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-family: var(--font-ui, sans-serif);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #161414;
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(6px);
+}
+.campus-badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #20b26b;
+  box-shadow: 0 0 6px #20b26b;
+  flex: none;
+}
+
+
+.auth-form { display: grid; place-items: center; padding: 28px; background: #ffffff; }
 .auth-card { width: min(420px, 100%); display: grid; gap: 18px; }
 .auth-card h1 { font-size: 32px; }
-@media (max-width: 860px) { .auth { grid-template-columns: 1fr; } .auth-side { padding-block: 28px; } .auth-side .chain-wrap { display: none; } }
+
+@media (max-width: 860px) {
+  .auth { grid-template-columns: 1fr; }
+  .auth-side { padding-block: 24px; border-right: 0; border-bottom: 1px solid #ebdcd5; }
+  .auth-side .chain-wrap { display: none; }
+  .auth-header-meta { display: none; }
+  .auth-intro h2 { max-width: 100%; }
+  .auth-hero { aspect-ratio: 16 / 10; flex: none; }
+}

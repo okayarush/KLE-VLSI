@@ -18,7 +18,11 @@ export function Lockup({ compact, inverse }: { compact?: boolean; inverse?: bool
   const [i, setI] = useState(0)
   return (
     <div className={`lockup ${inverse ? 'lockup-inverse' : ''}`}>
-      {i < CANDIDATES.length && <img src={CANDIDATES[i]} style={{ height: compact ? 34 : 46, width: 'auto' }} alt="KLE Technological University logo" onError={() => setI(i + 1)} />}
+      {i < CANDIDATES.length && (
+        <div style={{ background: '#ffffff', borderRadius: 6, padding: '3px 8px', display: 'inline-flex', alignItems: 'center' }}>
+          <img src={CANDIDATES[i]} style={{ height: compact ? 30 : 38, width: 'auto' }} alt="KLE Technological University logo" onError={() => setI(i + 1)} />
+        </div>
+      )}
       <div className="lockup-text">
         <span className="lockup-uni">{INSTITUTION.university}</span>
         {!compact && <span className="lockup-dept">{INSTITUTION.department}</span>}
@@ -39,6 +43,10 @@ export function ProductGlyph({ size = 30 }: { size?: number }) {
 
 /** The header wordmark is the official KLE Tech logo (same file as the landing navbar). */
 export function ProductName({ size = 'md' }: { size?: 'md' | 'lg' }) {
-  const height = size === 'lg' ? 44 : 34
-  return <img src="/images/kle%20technological%20navbar.png" alt="KLE Technological University — Integration Portfolio" height={height} style={{ height, width: 'auto', display: 'block' }} />
+  const height = size === 'lg' ? 44 : 38
+  return (
+    <div style={{ background: '#ffffff', borderRadius: 8, padding: '5px 12px', display: 'inline-flex', alignItems: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
+      <img src="/images/kle%20technological%20navbar.png" alt="KLE Technological University — Integration Portfolio" height={height} style={{ height, width: 'auto', display: 'block' }} />
+    </div>
+  )
 }

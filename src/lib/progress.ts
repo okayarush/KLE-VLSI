@@ -13,9 +13,32 @@ export function completeRows(sec: Extract<SectionDef, { type: 'rows' }>, rows: R
   return rows.filter((r) => req.every((id) => (r.v[id] ?? '').trim()))
 }
 
+/**
+ * Page 3 comparison matrix (weighted criteria), stored as rows `3.matrix` beside the concepts in `3.alts`.
+ * Academic requirement (docs/ACADEMIC_REQUIREMENTS.md, Review 2): "Pugh matrix or weighted-criteria comparison table"
+ * covering the minimum of 3 alternatives. The handbook sets no minimum number of criteria, so we ask for at least one.
+ * The matrix editor's own contract is used for values: weight 1–5 per criterion, score 1–5 per concept per criterion.
+ * Complete means: ≥ 3 named concepts, ≥ 1 named criterion, every criterion weighted, every concept scored on every criterion.
+ */
+export const MATRIX_MIN_CONCEPTS = 3
+export function matrixProgress(c: Content) {
+  const concepts = (c.rows['3.alts'] ?? []).filter((a) => (a.v.name ?? '').trim())
+  const criteria = (c.rows['3.matrix'] ?? []).filter((r) => (r.v.criterion ?? '').trim())
+  const inRange = (v?: string) => { const n = parseFloat(v ?? ''); return Number.isFinite(n) && n >= 1 && n <= 5 }
+  const weighted = criteria.filter((r) => inRange(r.v.weight)).length
+  const cells = concepts.length * criteria.length
+  const scored = criteria.reduce((n, r) => n + concepts.filter((a) => inRange(r.v[`s:${a.id}`])).length, 0)
+  const complete = concepts.length >= MATRIX_MIN_CONCEPTS && criteria.length >= 1 && weighted === criteria.length && scored === cells
+  const filledShare = cells + criteria.length ? (scored + weighted) / (cells + criteria.length) : 0
+  const fraction = complete ? 1 : Math.min(0.99, filledShare * Math.min(1, concepts.length / MATRIX_MIN_CONCEPTS))
+  return { concepts: concepts.length, criteria: criteria.length, weighted, cells, scored, complete, fraction }
+}
+
 /** 0..1 completion of one section. Advisory only — this is a writing-progress measure, not a grade. */
 export function sectionProgress(p: PageDef, sec: SectionDef, c: Content): number {
   const k = skey(p.id, sec.id)
+  // Page 3 "Comparison": the weighted matrix is the comparison; the written explanation is the other half.
+  if (p.id === 3 && sec.id === 'compare') return (matrixProgress(c).fraction + Math.min(1, words(c.prose[k]) / ((sec as { minWords?: number }).minWords ?? 20))) / 2
   if (sec.type === 'prose') return Math.min(1, words(c.prose[k]) / (sec.minWords ?? 20))
   if (sec.type === 'rows') {
     const need = Math.max(sec.minRows ?? 1, 1)
@@ -23,6 +46,21 @@ export function sectionProgress(p: PageDef, sec: SectionDef, c: Content): number
     return Math.min(1, completeRows(sec, c.rows[k]).length / need)
   }
   return c.evidence.some((e) => e.pageId === p.id && e.sectionId === sec.id) ? 1 : 0
+}
+
+/** One short phrase saying what a section still needs — used to explain why "Mark as Complete" is not available yet. */
+export function sectionGap(p: PageDef, sec: SectionDef, c: Content): string {
+  const k = skey(p.id, sec.id)
+  if (p.id === 3 && sec.id === 'compare') {
+    const m = matrixProgress(c), w = words(c.prose[k]), min = (sec as { minWords?: number }).minWords ?? 20
+    const bits: string[] = []
+    if (!m.complete) bits.push(m.concepts < MATRIX_MIN_CONCEPTS ? `matrix needs ${MATRIX_MIN_CONCEPTS} concepts (${m.concepts} so far)` : m.criteria === 0 ? 'matrix has no criteria' : `matrix ${m.scored + m.weighted}/${m.cells + m.criteria} weights and scores`)
+    if (w < min) bits.push(`${w}/${min} words`)
+    return bits.join(', ')
+  }
+  if (sec.type === 'prose') return `${words(c.prose[k])}/${sec.minWords ?? 20} words`
+  if (sec.type === 'rows') return (sec.minRows ?? 1) === 0 ? 'add at least one entry' : `${completeRows(sec, c.rows[k]).length}/${Math.max(sec.minRows ?? 1, 1)} complete entries`
+  return 'attach at least one file'
 }
 
 export function pageProgress(p: PageDef, c: Content) {

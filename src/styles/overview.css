@@ -1014,3 +1014,107 @@ b.qty {
 .poster-draft { align-self: flex-start; background: #fff4e5; color: #7a3d00; border: 1px dashed #d9a35f; border-radius: 999px; padding: 3px 10px; font: 700 10px var(--font-mono, monospace); letter-spacing: .06em; text-transform: uppercase; }
 .p-box.missing { border-style: dashed; background: transparent; }
 .p-box.missing span { color: var(--text-muted); }
+
+/* =====================================================================
+   Usability refinements — help tooltips, source badges, link affordances.
+   Rule of thumb used here: dashed + muted = information the app fills in (not clickable);
+   solid maroon + arrow/underline = a link; bordered button = an action; inputs = what you type.
+   ===================================================================== */
+
+/* ---------- ⓘ help tooltip ---------- */
+.info-btn {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 4px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: help;
+  vertical-align: middle;
+  flex: none;
+}
+.info-btn::after { content: ''; position: absolute; inset: -9px; }   /* ≥ 34px touch target */
+.info-btn:hover { color: var(--maroon); }
+.info-btn:focus-visible { outline: 2px solid var(--maroon); outline-offset: 1px; color: var(--maroon); }
+.info-btn[aria-expanded="true"] { color: var(--maroon); }
+.info-tip {
+  position: fixed;
+  z-index: 1000;
+  width: max-content;
+  max-width: min(280px, calc(100vw - 16px));
+  padding: 9px 11px;
+  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  background: #fff;
+  color: var(--text-2);
+  box-shadow: var(--shadow-md);
+  font: 400 12.5px/1.5 var(--font-ui);
+  letter-spacing: 0;
+  text-transform: none;
+  text-align: left;
+  white-space: normal;
+}
+
+/* ---------- source badges ---------- */
+.src-wrap { display: inline-flex; align-items: center; }
+.src {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px dashed var(--border-strong);
+  background: transparent;
+  color: var(--text-muted);
+  font: 600 10.5px/1 var(--font-mono);
+  letter-spacing: .02em;
+  white-space: nowrap;
+  cursor: default;
+}
+.src.entered { border-style: solid; background: var(--surface-2); color: var(--text-2); }
+.src.is-link { border-style: solid; border-color: var(--ai-line); color: var(--maroon); text-decoration: none; cursor: pointer; }
+.src.is-link:hover { background: var(--blush); border-color: var(--maroon); text-decoration: underline; }
+.src.is-link:focus-visible { outline: 2px solid var(--maroon); outline-offset: 1px; }
+
+/* ---------- link-style tag (e.g. an FR reference that is missing from the FR table) ---------- */
+a.tag.is-link { text-decoration: none; cursor: pointer; }
+a.tag.is-link:hover { text-decoration: underline; border-color: currentColor; }
+a.tag.is-link:focus-visible { outline: 2px solid var(--maroon); outline-offset: 1px; }
+
+/* ---------- diagram: extra header item + footer used when a diagram is only a preview ---------- */
+.diag-r { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.diag-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-muted); }
+.diag-foot p { max-width: 62ch; line-height: 1.45; }
+
+/* ---------- "Traced to" chips: filled = linked, dashed link = not linked yet (opens the page that fixes it) ---------- */
+.trace a {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font: 600 10.5px var(--font-mono);
+  color: var(--maroon);
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+  text-decoration: none;
+}
+.trace a:hover { background: var(--blush); border-color: var(--maroon); text-decoration: underline; }
+.trace a:focus-visible { outline: 2px solid var(--maroon); outline-offset: 1px; }
+
+/* ---------- table header / stat label with a tooltip ---------- */
+.dt th .info-btn, .stat2 span .info-btn { margin-left: 5px; }
+
+/* ---------- editor: label row with help / note ---------- */
+.flabel { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; min-height: 14px; }
+.flabel > label, .flabel > .label { font: 600 11.5px/1.2 var(--font-ui); color: var(--text-2); letter-spacing: .03em; }
+.flabel .info-btn { margin-left: 0; }
+.fnote { font: 600 10.5px/1 var(--font-mono); color: var(--text-muted); padding: 3px 6px; border-radius: 5px; background: var(--surface-3); letter-spacing: .02em; }
+a.fwarn { font: 600 10.5px/1 var(--font-mono); color: var(--warn); background: var(--warn-soft); padding: 3px 6px; border-radius: 5px; text-decoration: none; }
+a.fwarn:hover { text-decoration: underline; }
+.req-legend { font-size: 12px; color: var(--text-muted); }
+.frc .tg.warn .linkish { color: var(--warn); text-align: right; }

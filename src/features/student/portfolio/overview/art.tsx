@@ -1,5 +1,7 @@
 import { num } from './kit'
 import type { ReactNode } from 'react'
+import { Plus } from 'lucide-react'
+import { SourceBadge, pageNo } from '../guide'
 
 /* =====================================================================
    Editorial Technical Illustrations & Engineering Schematics
@@ -205,17 +207,34 @@ const MONO = 'JetBrains Mono, monospace'
 const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + '…' : s)
 const gh = { stroke: GHOST, strokeWidth: 1.4, strokeDasharray: '5 4', fill: '#fffdfc' }
 
-function Diag({ eyebrow, note, children, h, label }: { eyebrow: string; note?: ReactNode; children: ReactNode; h: number; label: string }) {
+/**
+ * Diagram card. `source` says where the drawing comes from (shown in the header, never clickable unless it links to a page);
+ * `foot` is shown under the drawing — used to explain an empty "ghost" preview and offer the action that fills it.
+ */
+function Diag({ eyebrow, note, children, h, label, source, foot }: { eyebrow: string; note?: ReactNode; children: ReactNode; h: number; label: string; source?: ReactNode; foot?: ReactNode }) {
   return (
-    <div className="diag-card" role="img" aria-label={label}>
+    <div className="diag-card">
       <div className="diag-head">
         <span className="eyebrow">{eyebrow}</span>
-        {note && <span className="mono muted" style={{ fontSize: 11 }}>{note}</span>}
+        {(note || source) && <span className="diag-r">{note && <span className="mono muted" style={{ fontSize: 11 }}>{note}</span>}{source}</span>}
       </div>
-      <svg viewBox={`0 0 760 ${h}`} className="diag-svg">{children}</svg>
+      <svg viewBox={`0 0 760 ${h}`} className="diag-svg" role="img" aria-label={label}>{children}</svg>
+      {foot && <div className="diag-foot">{foot}</div>}
     </div>
   )
 }
+
+/** Explains an empty preview in words and offers the action that fills it. */
+function GhostFoot({ text, action }: { text: string; action?: { label: string; onClick: () => void } }) {
+  return (
+    <>
+      <p>{text}</p>
+      {action && <button type="button" className="ovs-edit" onClick={action.onClick}><Plus size={13} /> {action.label}</button>}
+    </>
+  )
+}
+/** Neutral skeleton bar used instead of fake sample words in a preview. */
+const Bar = ({ x, y, w }: { x: number; y: number; w: number }) => <rect x={x} y={y} width={w} height={6} rx={3} fill={GHOST} opacity=".55" />
 const Arrow = ({ x, y, w = 34, color = MAROON, ghost }: { x: number; y: number; w?: number; color?: string; ghost?: boolean }) =>
   <path d={`M${x} ${y} h${w} m-6 -5 l6 5 l-6 5`} fill="none" stroke={ghost ? GHOST : color} strokeWidth="1.6" strokeDasharray={ghost ? '4 3' : undefined} />
 
@@ -309,23 +328,27 @@ function spanOf(value = ''): number | null {
   return r > 1 ? r : null
 }
 
-export function DynamicRangeDiagram({ inputs }: { inputs: { parameter: string; value: string; provenance: string }[] }) {
+export function DynamicRangeDiagram({ inputs, onAdd }: { inputs: { parameter: string; value: string; provenance: string }[]; onAdd?: () => void }) {
   const real = inputs.filter((r) => r.parameter?.trim() || r.value?.trim())
   const ghost = real.length === 0
-  const items = ghost ? [1, 2, 3].map((i) => ({ parameter: `Parameter ${i}`, value: '— —', provenance: '' })) : real.slice(0, 6)
+  const items = ghost ? [1, 2, 3].map(() => ({ parameter: '', value: '', provenance: '' })) : real.slice(0, 6)
   const count = (k: string) => real.filter((r) => r.provenance === k).length
   const h = 48 + items.length * 30
   const color = (p: string) => (p === 'measured' ? '#1b8a57' : p === 'assumed' ? '#a8630a' : p === 'datasheet' ? '#2457a6' : GHOST_TXT)
   return (
-    <Diag eyebrow="Design inputs · what constrains the design" note={ghost ? 'no inputs yet' : `${count('measured')} measured · ${count('datasheet')} datasheet · ${count('assumed')} assumed`} h={h} label={ghost ? 'Add quantified design inputs on Page 2' : 'Design inputs with provenance'}>
+    <Diag eyebrow="Design inputs · what constrains the design" note={ghost ? 'no inputs yet' : `${count('measured')} measured · ${count('datasheet')} datasheet · ${count('assumed')} assumed`} h={h}
+      label={ghost ? 'Preview of the design inputs chart. It fills in automatically from the Quantified design inputs section.' : 'Design inputs with provenance'}
+      source={<SourceBadge kind="auto" info="Drawn automatically from the rows in section 2.2 (Quantified design inputs). You can't type in this chart; use the Edit button on 2.2 to change the numbers.">{ghost ? 'Preview · fills from 2.2' : 'Auto-built from 2.2'}</SourceBadge>}
+      foot={ghost ? <GhostFoot text="This is a preview, not a form. Each design input you add in 2.2 appears here with its value and where the number came from." action={onAdd && { label: 'Add design inputs', onClick: onAdd }} /> : undefined}>
       {items.map((r, i) => {
         const y = 16 + i * 30, span = ghost ? null : spanOf(r.value)
         const bar = span ? Math.min(250, 40 + Math.log10(span) * 70) : 0
         return (
           <g key={i} transform={`translate(14 ${y})`}>
             <rect width={732} height={24} rx={5} {...(ghost ? gh : { fill: '#fff', stroke: '#eadfdb' })} />
-            <text x={12} y={16} fontSize="11.5" fontWeight="600" fill={ghost ? GHOST_TXT : INK}>{clip(r.parameter || 'Unnamed parameter', 30)}</text>
-            <text x={270} y={16} fontSize="11.5" fill={ghost ? GHOST_TXT : INK} fontFamily={MONO}>{clip(r.value || '—', 22)}</text>
+            {ghost ? <><Bar x={12} y={9} w={118} /><Bar x={270} y={9} w={64} /><Bar x={430} y={9} w={52} /></> : <>
+            <text x={12} y={16} fontSize="11.5" fontWeight="600" fill={INK}>{clip(r.parameter || 'Unnamed parameter', 30)}</text>
+            <text x={270} y={16} fontSize="11.5" fill={INK} fontFamily={MONO}>{clip(r.value || '—', 22)}</text></>}
             <text x={430} y={16} fontSize="10.5" fontWeight="700" fill={color(r.provenance)} fontFamily={MONO}>{ghost ? '' : r.provenance || 'no provenance'}</text>
             {span && <><rect x={500} y={8} width={bar} height={8} rx={4} fill={MAROON} opacity=".75" /><text x={506 + bar} y={16} fontSize="10.5" fill={MUTED} fontFamily={MONO}>{span >= 10 ? Math.round(span) : span.toFixed(1)}:1 span</text></>}
           </g>
@@ -337,11 +360,13 @@ export function DynamicRangeDiagram({ inputs }: { inputs: { parameter: string; v
 
 /* ---------------- Page 04: traceability from the FR table ---------------- */
 
-export function TraceabilityWebDiagram({ frNos, inputCount, blockCount, calcCount, validCount }: { frNos: string[]; inputCount: number; blockCount: number; calcCount: number; validCount: number }) {
+export function TraceabilityWebDiagram({ frNos, inputCount, blockCount, calcCount, validCount, onAdd }: { frNos: string[]; inputCount: number; blockCount: number; calcCount: number; validCount: number; onAdd?: () => void }) {
   const n = frNos.length, ghost = n === 0
   const dim = (c: number) => (c === 0 ? GHOST_TXT : MAROON)
   return (
-    <Diag eyebrow="Requirement traceability" note="Each FR is linked forward when a block (P5), calculation (P6) or validation row (P9) cites it" h={110} label={ghost ? 'Add functional requirements to see traceability' : `${n} requirements traced to blocks, calculations and validation`}>
+    <Diag eyebrow="Requirement traceability" note="Each FR is linked forward when a block (P5), calculation (P6) or validation row (P9) cites it" h={110} label={ghost ? 'Preview of the requirement traceability diagram. It fills in once functional requirements are added.' : `${n} requirements traced to blocks, calculations and validation`}
+      source={<SourceBadge kind="auto" info={`Counts taken automatically from your other pages: design inputs (${pageNo(2)}), the FR table below (${pageNo(4)}), blocks that cite an FR (${pageNo(5)}), calculations that cite an FR (${pageNo(6)}) and validation rows (${pageNo(9)}). Nothing here is typed in.`}>{ghost ? 'Preview · fills from the FR table' : 'Auto-built from Pages 02 · 04 · 05 · 06 · 09'}</SourceBadge>}
+      foot={ghost ? <GhostFoot text="This is a preview, not a form. Add your requirements in the table below; the diagram then counts how many are cited by blocks (Page 05), calculations (Page 06) and validation rows (Page 09)." action={onAdd && { label: 'Add the first FR', onClick: onAdd }} /> : undefined}>
       <path d="M174 55 h68 M392 38 l72 -14 M392 55 h72 M392 72 l72 14" fill="none" stroke={ghost ? GHOST : MAROON} strokeWidth="1.6" strokeDasharray={ghost ? '4 3' : undefined} />
       <g transform="translate(18 22)">
         <rect width="156" height="66" rx="8" {...(inputCount ? { fill: '#fff', stroke: LINE, strokeWidth: 1.4 } : gh)} />
@@ -352,7 +377,7 @@ export function TraceabilityWebDiagram({ frNos, inputCount, blockCount, calcCoun
         <rect width="150" height="74" rx="9" {...(ghost ? gh : { fill: '#fbeeed', stroke: MAROON, strokeWidth: 1.8 })} />
         <text x="14" y="24" fontSize="10" fontWeight="700" fill={ghost ? GHOST_TXT : MAROON} fontFamily={MONO}>PAGE 04 · FR TABLE</text>
         <text x="14" y="45" fontSize="14" fontWeight="700" fill={ghost ? GHOST_TXT : INK}>{ghost ? 'No FRs yet' : `${n} requirement${n === 1 ? '' : 's'}`}</text>
-        <text x="14" y="62" fontSize="10.5" fill={ghost ? GHOST_TXT : '#7a1520'} fontFamily={MONO}>{ghost ? 'FR-— … FR-—' : n === 1 ? clip(frNos[0] || '—', 18) : `${clip(frNos[0] || '—', 8)} … ${clip(frNos[n - 1] || '—', 8)}`}</text>
+        <text x="14" y="62" fontSize="10.5" fill={ghost ? GHOST_TXT : '#7a1520'} fontFamily={MONO}>{ghost ? '' : n === 1 ? clip(frNos[0] || '—', 18) : `${clip(frNos[0] || '—', 8)} … ${clip(frNos[n - 1] || '—', 8)}`}</text>
       </g>
       {([['Page 05 · Architecture blocks', blockCount, 'citing an FR', 6], ['Page 06 · Sizing calculations', calcCount, 'citing an FR', 41], ['Page 09 · Predicted vs measured', validCount, 'rows', 76]] as const).map(([t, c, w, y]) => (
         <g key={t} transform={`translate(464 ${y})`}>
@@ -463,7 +488,7 @@ export function VerificationFunnel({ sims, tests, measured, integrationWords, de
 
 /* ---------------- Page 09: deviation chart from validation rows ---------------- */
 
-export function DeviationChart({ rows }: { rows: { fr: string; predicted: string; measured: string }[] }) {
+export function DeviationChart({ rows, onAdd }: { rows: { fr: string; predicted: string; measured: string }[]; onAdd?: () => void }) {
   const pts: { fr: string; p: string; m: string; dev: number }[] = []
   const skipped: string[] = []
   rows.forEach((r) => {
@@ -479,12 +504,14 @@ export function DeviationChart({ rows }: { rows: { fr: string; predicted: string
   const h = axisY + 24 + (skipped.length ? 18 : 0)
   const rowsToDraw = ghost ? [0, 1, 2].map(() => null) : shown
   return (
-    <Diag eyebrow="Deviation from prediction" note={ghost ? 'needs numeric predicted and measured values' : `(measured − predicted) ÷ predicted · axis ±${R}%`} h={h} label={ghost ? 'Enter predicted and measured values to see deviations' : 'Deviation of measured values from predictions'}>
+    <Diag eyebrow="Deviation from prediction" note={ghost ? 'needs numeric predicted and measured values' : `(measured − predicted) ÷ predicted · axis ±${R}%`} h={h} label={ghost ? 'Preview of the deviation chart. It fills in once a row has numeric predicted and measured values.' : 'Deviation of measured values from predictions'}
+      source={<SourceBadge kind="calc" info="Calculated automatically as (measured − predicted) ÷ predicted from the Predicted and Measured columns of the validation sheet (9.2). This is separate from the Deviation column, which you type yourself.">{ghost ? 'Preview · calculated from 9.2' : 'Auto-calculated from 9.2'}</SourceBadge>}
+      foot={ghost ? <GhostFoot text={rows.some((r) => r.predicted?.trim() || r.measured?.trim()) ? 'This is a preview, not a form. The rows in 9.2 need a number with the same unit in both Predicted and Measured, for example 2.0 V and 1.9 V.' : 'This is a preview, not a form. Once a validation row has numeric Predicted and Measured values, the deviation is calculated and drawn here.'} action={onAdd && { label: 'Open the validation sheet', onClick: onAdd }} /> : undefined}>
       <line x1={cx} y1={10} x2={cx} y2={axisY} stroke={ghost ? GHOST : INK} strokeWidth="1.2" strokeDasharray={ghost ? '4 3' : undefined} />
       <line x1={cx - half} y1={axisY} x2={cx + half} y2={axisY} stroke={ghost ? GHOST : LINE} strokeWidth="1" />
       {rowsToDraw.map((d, i) => {
         const y = top + i * 26
-        if (!d) return <g key={i}><text x={14} y={y + 12} fontSize="11" fill={GHOST_TXT} fontFamily={MONO}>FR-—</text><rect x={cx - 70} y={y + 3} width={140} height={10} rx={5} {...gh} /></g>
+        if (!d) return <g key={i}><Bar x={14} y={y + 6} w={46} /><rect x={cx - 70} y={y + 3} width={140} height={10} rx={5} {...gh} /></g>
         const raw = Math.abs(d.dev) * scale, w = Math.min(raw, half), clipped = raw > half
         return (
           <g key={i}>

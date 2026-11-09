@@ -1,5 +1,7 @@
 import { ArrowRight, Check, Clock, Lightbulb, TriangleAlert } from 'lucide-react'
-import { words } from '../../../../lib/progress'
+import { skey, words } from '../../../../lib/progress'
+import { useStore, type Row } from '../../../../state/store'
+import { Info, SourceBadge, pageNo, pagePath } from '../guide'
 import { DebuggingLoopDiagram, DeviationChart, VerificationFunnel } from './art'
 import { Blank, Evidences, FrRef, OvSection, Rich, Stat, Tag, filled, fmtDay, frSetOf, norm, num, proseOf, rowsOf, type OvProps } from './kit'
 
@@ -94,21 +96,25 @@ export function ValidationOv({ c, edit }: OvProps) {
   const fail = rows.filter((r) => r.v.result === 'Fail').length
   const pairs = rows.map((r) => ({ r, p: num(r.v.predicted), m: num(r.v.measured) })).filter((x) => x.p && x.m)
   const pct = frTable.length ? (covered / frTable.length) * 100 : 0
+  const addRow = useStore((st) => st.addRow)
+  /** Starts the validation row for one FR: the FR number and target are copied from the FR table, then the editor opens. */
+  const startRow = (t: Row) => { addRow(skey(9, 'validation'), { fr: t.v.no ?? '', target: t.v.target ?? '' }, 9); edit('validation') }
   return (
     <div className="ov">
       <div className="stats">
         <div className="stat2 ringstat">
           <svg viewBox="0 0 44 44" width="56" height="56" aria-hidden="true"><circle cx="22" cy="22" r="18" fill="none" stroke="var(--surface-3)" strokeWidth="5" /><circle cx="22" cy="22" r="18" fill="none" stroke="var(--maroon)" strokeWidth="5" strokeLinecap="round" strokeDasharray={`${(pct / 100) * 113} 113`} transform="rotate(-90 22 22)" /></svg>
-          <div><b>{covered}<small>/{frTable.length}</small></b><span>FRs validated</span></div>
+          <div><b>{covered}<small>/{frTable.length}</small></b><span>FRs validated<Info label="About FRs validated" text={`Worked out automatically: how many requirements in the FR table on ${pageNo(4)} have a row in the validation sheet below.`} /></span></div>
         </div>
-        <Stat value={pass} label="Pass" tone="ok" />
-        <Stat value={fail} label="Fail" tone={fail ? 'no' : undefined} />
-        <Stat value={todo.length} label="Awaiting a row" tone={todo.length ? 'warn' : 'ok'} sub={todo.length ? todo.map((t) => t.v.no).slice(0, 3).join(', ') : 'every FR covered'} />
+        <Stat value={pass} label="Pass" tone="ok" info="Counted automatically from the Result column below, which you choose yourself for each row." />
+        <Stat value={fail} label="Fail" tone={fail ? 'no' : undefined} info="Counted automatically from the Result column below, which you choose yourself for each row." />
+        <Stat value={todo.length} label="Awaiting a row" tone={todo.length ? 'warn' : 'ok'} sub={todo.length ? todo.map((t) => t.v.no).slice(0, 3).join(', ') : 'every FR covered'} info={`Requirements from the FR table on ${pageNo(4)} that do not have a validation row yet.`} />
       </div>
 
-      <DeviationChart rows={rows.map((r) => ({ fr: r.v.fr, predicted: r.v.predicted, measured: r.v.measured }))} />
+      <DeviationChart rows={rows.map((r) => ({ fr: r.v.fr, predicted: r.v.predicted, measured: r.v.measured }))} onAdd={() => edit('validation')} />
 
-      <OvSection no="9.1" title="Predicted against measured" sub="Each pair is scaled to its own larger value, so a short bar never means a small number." >
+      <OvSection no="9.1" title="Predicted against measured" sub="Each pair is scaled to its own larger value, so a short bar never means a small number."
+        aside={<SourceBadge kind="auto" info="Drawn automatically from the Predicted and Measured columns of the validation sheet (9.2). Only rows where both contain a number are plotted.">Auto-plotted from 9.2</SourceBadge>}>
         {pairs.length ? (
           <div className="pm">
             <div className="pm-key"><span><i className="p" /> Predicted</span><span><i className="m" /> Measured</span></div>
@@ -126,17 +132,25 @@ export function ValidationOv({ c, edit }: OvProps) {
               )
             })}
           </div>
-        ) : <Blank compact title="Nothing to plot yet" text="Rows with numeric predicted and measured values are drawn here." />}
+        ) : <Blank compact title="Nothing to plot yet" text="Rows with numeric predicted and measured values are drawn here. Fill in those two columns in the validation sheet (9.2) below." />}
       </OvSection>
 
       <OvSection no="9.2" title="Validation sheet" sub="One row per functional requirement: prediction, measurement, deviation, explanation." onEdit={() => edit('validation')} editLabel="Edit sheet">
         <div className="dt-wrap">
           <table className="dt">
-            <thead><tr><th style={{ width: 84 }}>FR</th><th>Target</th><th className="r">Predicted</th><th className="r">Measured</th><th className="r">Deviation</th><th>Explanation of any discrepancy</th><th style={{ width: 80 }}>Result</th></tr></thead>
+            <thead><tr>
+              <th style={{ width: 84 }}>FR<Info label="About FR" text={`Which requirement this row validates. The chip is checked against the FR table on ${pageNo(4)}: if the number isn't there it turns amber and links to that table.`} /></th>
+              <th>Target</th>
+              <th className="r">Predicted<Info label="About Predicted" text={`What you calculated before measuring (see your calculations on ${pageNo(6)}). Include the unit.`} /></th>
+              <th className="r">Measured<Info label="About Measured" text={`What you read on the bench (see your test records on ${pageNo(8)}). Include the unit.`} /></th>
+              <th className="r">Deviation<Info label="About Deviation, entered by you" text="Entered by you. Type the difference between predicted and measured, for example −1.6 %. It is not calculated for you in this column; the chart above works out its own figures from Predicted and Measured." /></th>
+              <th>Explanation of any discrepancy</th>
+              <th style={{ width: 80 }}>Result<Info label="About Result, entered by you" text="Entered by you. Your judgement of whether the measured value meets the target." /></th>
+            </tr></thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
-                  <td><FrRef no={r.v.fr} frs={frs} /></td><td>{r.v.target || '—'}</td>
+                  <td><FrRef no={r.v.fr} frs={frs} link /></td><td>{r.v.target || '—'}</td>
                   <td className="r"><span className="pred mono">{r.v.predicted || '—'}</span></td><td className="r"><b className="meas mono">{r.v.measured || '—'}</b></td>
                   <td className="r">{r.v.deviation ? <Tag mono tone={devTone(r.v.deviation)}>{r.v.deviation}</Tag> : '—'}</td>
                   <td>{r.v.explain || <span className="dash">—</span>}</td>
@@ -144,9 +158,9 @@ export function ValidationOv({ c, edit }: OvProps) {
                 </tr>
               ))}
               {todo.map((t) => (
-                <tr key={t.id} className="ghost"><td><Tag mono>{t.v.no}</Tag></td><td>{t.v.target}</td><td colSpan={5}><button className="linkish" onClick={() => edit('validation')}>Not yet validated — add the row <ArrowRight size={13} /></button></td></tr>
+                <tr key={t.id} className="ghost"><td><Tag mono>{t.v.no}</Tag></td><td>{t.v.target}</td><td colSpan={5}><button className="linkish" onClick={() => startRow(t)} title={`Creates the validation row for ${t.v.no || 'this FR'} with its number and target filled in from the FR table, then opens the editor`}>Not yet validated — add the row <ArrowRight size={13} /></button></td></tr>
               ))}
-              {!rows.length && !todo.length && <tr><td colSpan={7}><Blank compact title="No validation rows yet" cta="Add a row" onClick={() => edit('validation')} /></td></tr>}
+              {!rows.length && !todo.length && <tr><td colSpan={7}><Blank compact title="No requirements to validate yet" text={`Each row here checks one requirement from the FR table on ${pageNo(4)}, and that table is empty. Add your requirements first, then come back.`} link={{ to: pagePath(4), label: `Go to ${pageNo(4)} · Functional Requirements` }} cta="Add a row anyway" onClick={() => edit('validation')} /></td></tr>}
             </tbody>
           </table>
         </div>

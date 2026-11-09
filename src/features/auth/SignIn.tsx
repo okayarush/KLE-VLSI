@@ -1,10 +1,11 @@
 import { useState, type FormEvent } from 'react'
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowRight, Lock } from 'lucide-react'
-import { Lockup, ProductName } from '../../brand/BrandMark'
+import { Lockup } from '../../brand/BrandMark'
 import { Button } from '../../design-system'
 import { startDemo, useStore } from '../../state/store'
 import { supabase, supabaseConfigured } from '../../lib/supabase'
+import { INSTITUTION } from '../../data/handbook'
 import { hydrate } from './bootstrap'
 
 const DOMAIN = '@kletech.ac.in' // access restricted to the institutional domain (PR §3)
@@ -49,14 +50,37 @@ export function SignIn() {
 
   return (
     <main className="auth">
-      <aside className="auth-side" data-theme="dark">
-        <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}><ProductName /></Link>
-        <div>
-          <p className="eyebrow" style={{ color: '#f4a259' }}>Student workspace</p>
-          <h2 style={{ marginTop: 10 }}>Your project, <em>one honest record</em>.</h2>
-          <p style={{ color: '#b7c2e2', marginTop: 14, maxWidth: '46ch' }}>Sign in to reach your team’s portfolio, your notebook, and your mentor.</p>
+      <aside className="auth-side" data-theme="light">
+        <div className="auth-header">
+          <Lockup compact />
+          <div className="auth-header-meta">
+            <span className="auth-header-programme">{INSTITUTION.programme}</span>
+            <span className="auth-header-year">{INSTITUTION.year.replace('Academic Year ', '')}</span>
+          </div>
         </div>
-        <Lockup inverse />
+
+        <div className="auth-intro">
+          <p className="eyebrow" style={{ color: '#9a1b24', fontWeight: 700, letterSpacing: '0.12em' }}>STUDENT WORKSPACE</p>
+          <h2 style={{ marginTop: 8, color: '#161414', fontFamily: 'var(--font-display, Georgia, serif)' }}>
+            Your project, <em style={{ color: '#9a1b24', fontStyle: 'italic' }}>one honest record</em>.
+          </h2>
+          <p style={{ color: '#59504c', marginTop: 10, maxWidth: '46ch', lineHeight: 1.55, fontSize: '14.5px' }}>
+            Sign in to reach your team’s portfolio, your notebook, and your mentor.
+          </p>
+        </div>
+
+        {/* Hero: the full campus building, framed rather than cropped */}
+        <div className="auth-hero">
+          <img
+            src="/images/updated%20kle%20campus%20image.png"
+            alt="KLE Technological University campus"
+            className="auth-hero-img"
+          />
+          <div className="auth-hero-caption">
+            <span className="campus-badge-dot" />
+            <span>KLE Technological University Campus</span>
+          </div>
+        </div>
       </aside>
       <section className="auth-form">
         <form className="auth-card" onSubmit={submit} noValidate>

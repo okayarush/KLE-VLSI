@@ -1,5 +1,7 @@
+import { Link } from 'react-router-dom'
 import { ArrowRight, CalendarClock, CheckCircle2, Clock, Lock, ShieldCheck } from 'lucide-react'
 import { fmtDate } from '../../../../lib/progress'
+import { Info, SourceBadge, pageNo, pagePath } from '../guide'
 import { CourseKnowledgeGraph, DesignLinkageDiagram, TraceabilityWebDiagram } from './art'
 import { Blank, Evidences, FrRef, OvSection, Stat, Tag, filled, frSetOf, norm, rowsOf, sentences, type OvProps } from './kit'
 
@@ -17,25 +19,37 @@ export function FrOv({ page, c, edit }: OvProps) {
   const valid = rowsOf(c, 9, 'validation').map((r) => norm(r.v.fr))
   const count = (s: string) => frs.filter((r) => r.v.status === s).length
   const noReason = frs.filter((r) => r.v.status !== 'Target confirmed and sizes calculation' && r.v.status && !filled(r.v.reason)).length
-  const trace = () => [['Block', blocks], ['Calc', calcs], ['Valid', valid]] as const
+  const cand = rowsOf(c, 2, 'candfr')
+  const trace = () => [
+    ['Block', blocks, 5, 'an architecture block', 'cite it as the Governing FR of a block'],
+    ['Calc', calcs, 6, 'a calculation', 'cite it as the Linked FR of a calculation'],
+    ['Valid', valid, 9, 'a validation row', 'add a validation row for it'],
+  ] as const
   return (
     <div className="ov">
       {page.note && <div className="freeze"><span className="fz-ic"><Lock size={18} /></span><div><b>Faculty freeze at Review 3</b><p>{page.note}</p></div></div>}
 
       <div className="stats">
-        <Stat value={frs.length} label="Functional requirements" sub="at least 3 expected" />
-        <Stat value={count('Target confirmed and sizes calculation')} label="Target confirmed" tone="ok" />
-        <Stat value={count('Under review — team not yet able to size this requirement')} label="Under review" tone="warn" />
-        <Stat value={count('Deferred with reason')} label="Deferred" tone={noReason ? 'no' : undefined} sub={noReason ? `${noReason} without a reason` : undefined} />
+        <Stat value={frs.length} label="Functional requirements" sub="at least 3 expected" info="Counted automatically from the requirements table below. To change it, add or remove rows in the table." />
+        <Stat value={count('Target confirmed and sizes calculation')} label="Target confirmed" tone="ok" info="Counted automatically: rows whose Status is “Target confirmed and sizes calculation”." />
+        <Stat value={count('Under review — team not yet able to size this requirement')} label="Under review" tone="warn" info="Counted automatically: rows whose Status is “Under review”. These need a reason." />
+        <Stat value={count('Deferred with reason')} label="Deferred" tone={noReason ? 'no' : undefined} sub={noReason ? `${noReason} without a reason` : undefined} info="Counted automatically: rows whose Status is “Deferred with reason”. Each one needs its reason filled in." />
       </div>
 
-      <TraceabilityWebDiagram frNos={frs.map((r) => r.v.no).filter(Boolean)} inputCount={rowsOf(c, 2, 'inputs').length} blockCount={blocks.filter(Boolean).length} calcCount={calcs.filter(Boolean).length} validCount={valid.filter(Boolean).length} />
+      <TraceabilityWebDiagram frNos={frs.map((r) => r.v.no).filter(Boolean)} inputCount={rowsOf(c, 2, 'inputs').length} blockCount={blocks.filter(Boolean).length} calcCount={calcs.filter(Boolean).length} validCount={valid.filter(Boolean).length} onAdd={() => edit('frtable')} />
 
       <OvSection no="4.1" title="Functional Requirements Table" sub="Quantified statements of what the system must do — target, method, source and status on every row." onEdit={() => edit('frtable')} editLabel="Edit table">
         {frs.length ? (
           <div className="dt-wrap">
             <table className="dt frt">
-              <thead><tr><th style={{ width: 84 }}>FR No.</th><th>Statement</th><th style={{ width: 150 }}>Target</th><th style={{ width: 170 }}>Measurement method</th><th style={{ width: 120 }}>Source</th><th style={{ width: 190 }}>Status</th><th style={{ width: 112 }}>Traced to</th></tr></thead>
+              <thead><tr>
+                <th style={{ width: 84 }}>FR No.</th><th>Statement</th>
+                <th style={{ width: 150 }}>Target<Info label="About Target" text="A number with a unit that shows whether the requirement is met, for example ≥ 40 dB or 880 kHz ± 2 %. “no target” means the row is not quantified yet." /></th>
+                <th style={{ width: 170 }}>Measurement method<Info label="About Measurement method" text="How you will measure it on the bench, for example an oscilloscope sweep at 1 kHz." /></th>
+                <th style={{ width: 120 }}>Source<Info label="About Source" text="Where the requirement came from: a user need, the theme specification, a device datasheet, or a design standard." /></th>
+                <th style={{ width: 190 }}>Status<Info label="About Status" text="Target confirmed: you can size a calculation from it. Under review: you cannot size it yet. Deferred: postponed. The last two need a reason, shown under the status." /></th>
+                <th style={{ width: 112 }}>Traced to<Info label="About Traced to" text={`Worked out automatically; you do not type it. A green chip means a block (${pageNo(5)}), calculation (${pageNo(6)}) or validation row (${pageNo(9)}) cites this FR. A dashed chip is a link: it opens the page where you can add the missing link.`} /></th>
+              </tr></thead>
               <tbody>
                 {frs.map((r) => (
                   <tr key={r.id}>
@@ -48,13 +62,21 @@ export function FrOv({ page, c, edit }: OvProps) {
                       {r.v.status ? <Tag tone={STATUS_TONE[r.v.status]} title={r.v.status}><span className="wrapt">{r.v.status}</span></Tag> : <span className="dash">—</span>}
                       {r.v.status && r.v.status !== 'Target confirmed and sizes calculation' && (filled(r.v.reason) ? <small className="reason">{r.v.reason}</small> : <small className="reason miss">Reason missing</small>)}
                     </td>
-                    <td><span className="trace">{trace().map(([l, list]) => <i key={l} className={list.includes(norm(r.v.no)) ? 'on' : ''} title={`${l}: ${list.includes(norm(r.v.no)) ? 'linked' : 'not linked yet'}`}>{l}</i>)}</span></td>
+                    <td><span className="trace">{trace().map(([l, list, pg, what, how]) => {
+                      const no = norm(r.v.no)
+                      if (no && list.includes(no)) return <i key={l} className="on" title={`${l}: linked — ${what} on ${pageNo(pg)} cites ${r.v.no}`}>{l}</i>
+                      if (!no) return <i key={l} title={`${l}: give this row an FR number first`}>{l}</i>
+                      return <Link key={l} to={pagePath(pg)} aria-label={`${l} not linked yet. Open ${pageNo(pg)} and ${how}`} title={`${l}: not linked yet — open ${pageNo(pg)} and ${how}`}>{l}</Link>
+                    })}</span></td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        ) : <Blank title="No requirements yet" text="Add at least three quantified requirements." cta="Add the first FR" onClick={() => edit('frtable')} />}
+        ) : <Blank title="No requirements yet"
+            text={cand.length ? `You have ${cand.length} candidate requirement${cand.length === 1 ? '' : 's'} on ${pageNo(2)}. They are not copied across automatically, so re-enter each one here with a target, method, source and status.` : `Add at least three quantified requirements. ${pageNo(2)} has a place to draft candidate requirements first.`}
+            link={{ to: pagePath(2), label: cand.length ? `Open your candidates on ${pageNo(2)}` : `Draft candidates on ${pageNo(2)}` }}
+            cta="Add the first FR" onClick={() => edit('frtable')} />}
         <p className="hint">“Traced to” shows whether an architecture block (Page 5), a calculation (Page 6) and a validation row (Page 9) cite each requirement.</p>
       </OvSection>
     </div>
@@ -63,6 +85,7 @@ export function FrOv({ page, c, edit }: OvProps) {
 
 /* ------------------------------------------------------------------ 5 Architecture */
 export function ArchOv({ c, edit }: OvProps) {
+  const frTableEmpty = rowsOf(c, 4, 'frtable').length === 0
   const blocks = rowsOf(c, 5, 'blocks')
   const decisions = rowsOf(c, 5, 'subalts')
   const frs = frSetOf(c)
@@ -70,7 +93,8 @@ export function ArchOv({ c, edit }: OvProps) {
   const undecided = blocks.filter((b) => !decided.has((b.v.block ?? '').trim().toLowerCase()))
   return (
     <div className="ov">
-      <OvSection no="5.1" title="Block diagram" sub="Drawn from your block table; attach your own captioned diagram alongside." onEdit={() => edit('diagram')} editLabel="Attach diagram">
+      <OvSection no="5.1" title="Block diagram" sub="Drawn from your block table; attach your own captioned diagram alongside." onEdit={() => edit('diagram')} editLabel="Attach diagram"
+        aside={blocks.length > 0 && <SourceBadge kind="auto" info="This diagram is drawn automatically from the Blocks table (5.2). To change it, edit the blocks. “Attach diagram” is separate: it adds your own captioned drawing as evidence.">Auto-drawn from 5.2</SourceBadge>}>
         {blocks.length ? (
           <div className="bd" role="img" aria-label={`Block diagram: ${blocks.map((b) => b.v.block).join(', then ')}`}>
             <div className="bd-io"><small>In</small><b>{blocks[0].v.inputs || '—'}</b></div>
@@ -78,7 +102,7 @@ export function ArchOv({ c, edit }: OvProps) {
               <div key={b.id} className="bd-seg">
                 <span className="bd-arrow"><ArrowRight size={18} /></span>
                 <div className="bd-box">
-                  <header><span className="mono">{String(i + 1).padStart(2, '0')}</span><FrRef no={b.v.fr} frs={frs} /></header>
+                  <header><span className="mono">{String(i + 1).padStart(2, '0')}</span><FrRef no={b.v.fr} frs={frs} link /></header>
                   <b>{b.v.block || 'Unnamed block'}</b>
                   <dl><dt>in</dt><dd>{b.v.inputs || '—'}</dd><dt>out</dt><dd>{b.v.outputs || '—'}</dd></dl>
                 </div>
@@ -87,7 +111,9 @@ export function ArchOv({ c, edit }: OvProps) {
             <span className="bd-arrow"><ArrowRight size={18} /></span>
             <div className="bd-io out"><small>Out</small><b>{blocks[blocks.length - 1].v.outputs || '—'}</b></div>
           </div>
-        ) : <Blank title="No blocks yet" text="List each block with its inputs, outputs and governing FR to draw the diagram." cta="Add a block" onClick={() => edit('blocks')} />}
+        ) : <Blank title="No blocks yet" text={`List each block with its inputs, outputs and governing FR to draw the diagram.${frTableEmpty ? ` Governing FRs come from the requirements table on ${pageNo(4)}, which has none yet.` : ''}`}
+            link={frTableEmpty ? { to: pagePath(4), label: `Define requirements on ${pageNo(4)} first` } : undefined}
+            cta="Add a block" onClick={() => edit('blocks')} />}
         <Evidences c={c} pageId={5} sectionId="diagram" empty="No captioned block diagram attached" onAdd={() => edit('diagram')} />
       </OvSection>
 
@@ -95,11 +121,12 @@ export function ArchOv({ c, edit }: OvProps) {
         {blocks.length ? (
           <div className="dt-wrap">
             <table className="dt">
-              <thead><tr><th>Block</th><th>Inputs</th><th>Outputs</th><th>Governing FR</th></tr></thead>
-              <tbody>{blocks.map((b) => <tr key={b.id}><td><b>{b.v.block}</b></td><td className="mono sm">{b.v.inputs || '—'}</td><td className="mono sm">{b.v.outputs || '—'}</td><td><FrRef no={b.v.fr} frs={frs} /></td></tr>)}</tbody>
+              <thead><tr><th>Block</th><th>Inputs</th><th>Outputs</th><th>Governing FR<Info label="About Governing FR" text={`The requirement that sets this block's targets. The chip is checked automatically against the FR table on ${pageNo(4)}: if the number isn't there it turns amber and becomes a link to that table.`} /></th></tr></thead>
+              <tbody>{blocks.map((b) => <tr key={b.id}><td><b>{b.v.block}</b></td><td className="mono sm">{b.v.inputs || '—'}</td><td className="mono sm">{b.v.outputs || '—'}</td><td><FrRef no={b.v.fr} frs={frs} link /></td></tr>)}</tbody>
             </table>
           </div>
         ) : <Blank compact title="Nothing to show yet" />}
+        {blocks.length > 0 && frTableEmpty && <Blank compact title="Governing FRs can't be checked yet" text={`They are matched against the requirements table on ${pageNo(4)}, which is empty.`} link={{ to: pagePath(4), label: `Add requirements on ${pageNo(4)}` }} />}
       </OvSection>
 
       <OvSection no="5.3" title="Subsystem alternatives and selections" sub="At least one alternative per block, and why you chose what you chose." onEdit={() => edit('subalts')}>

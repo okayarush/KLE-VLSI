@@ -5,6 +5,9 @@ import type { PageDef } from '../../../../data/pages'
 import { skey, type Content } from '../../../../lib/progress'
 import type { Row } from '../../../../state/store'
 import { EvidenceFigure } from '../Sections'
+import { Info, norm, pagePath, pageNo } from '../guide'
+
+export { norm }
 
 /** Props every page overview receives. `edit(sectionId)` jumps to that section's editing tab. */
 export interface OvProps { page: PageDef; c: Content; edit: (sectionId: string) => void }
@@ -12,7 +15,6 @@ export interface OvProps { page: PageDef; c: Content; edit: (sectionId: string) 
 export const rowsOf = (c: Content, pageId: number, sec: string): Row[] => c.rows[skey(pageId, sec)] ?? []
 export const proseOf = (c: Content, pageId: number, sec: string) => (c.prose[skey(pageId, sec)] ?? '').trim()
 export const filled = (s?: string) => !!(s ?? '').trim()
-export const norm = (s = '') => s.trim().toUpperCase().replace(/\s+/g, '')
 export const initialsOf = (name = '') => name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join('') || '·'
 
 /** Numbered documentation section, e.g. “3.2 Comparative Evaluation”, with a quiet edit affordance. */
@@ -31,11 +33,13 @@ export function OvSection({ no, title, sub, onEdit, editLabel = 'Edit', children
   )
 }
 
-export function Blank({ title, text, cta, onClick, compact }: { title: string; text?: string; cta?: string; onClick?: () => void; compact?: boolean }) {
+/** Empty state. `link` points to the page this depends on (shown as a link-styled action, before any "add" button). */
+export function Blank({ title, text, cta, onClick, compact, link }: { title: string; text?: string; cta?: string; onClick?: () => void; compact?: boolean; link?: { to: string; label: string } }) {
   return (
     <div className={`blank ${compact ? 'compact' : ''}`}>
       <b>{title}</b>
       {text && <p>{text}</p>}
+      {link && <Link className="plink" to={link.to}>{link.label}<ArrowUpRight size={12} /></Link>}
       {cta && onClick && <button className="act" style={{ height: 36, marginTop: 4 }} onClick={onClick}><Plus size={15} /> {cta}</button>}
     </div>
   )
@@ -49,10 +53,16 @@ export function Avatar({ name, size = 40 }: { name: string; size?: number }) {
   return <span className="av" style={{ width: size, height: size, fontSize: size * 0.34 }} aria-hidden="true">{initialsOf(name)}</span>
 }
 
-/** FR reference chip: flags a reference that is not in the FR table (the same cross-check the AI makes). */
-export function FrRef({ no, frs }: { no?: string; frs: Set<string> }) {
+/**
+ * FR reference chip: flags a reference that is not in the FR table (the same cross-check the AI makes).
+ * With `link`, a missing reference becomes a link to the FR table on Page 04 that says why it is flagged.
+ */
+export function FrRef({ no, frs, link }: { no?: string; frs: Set<string>; link?: boolean }) {
   if (!filled(no)) return <span className="dash">—</span>
   const known = frs.size === 0 || frs.has(norm(no))
+  if (!known && link) {
+    return <Link to={pagePath(4)} className="tag warn mono is-link" title={`${no!.trim()} is not in the Functional Requirements table on ${pageNo(4)}. Open it to add or correct the requirement.`}>{no!.trim()} · not in FR table<ArrowUpRight size={11} /></Link>
+  }
   return <Tag tone={known ? 'maroon' : 'warn'} mono title={known ? undefined : 'Not found in the Functional Requirements table'}>{no!.trim()}{!known && ' ?'}</Tag>
 }
 
@@ -85,8 +95,8 @@ export function Evidences({ c, pageId, sectionId, onAdd, empty }: { c: Content; 
   return <div className="ev-strip">{list.map((e) => <EvidenceFigure key={e.id} e={e} />)}</div>
 }
 
-export function Stat({ value, label, tone, sub }: { value: ReactNode; label: string; tone?: 'ok' | 'warn' | 'no'; sub?: string }) {
-  return <div className={`stat2 ${tone ?? ''}`}><b>{value}</b><span>{label}</span>{sub && <small>{sub}</small>}</div>
+export function Stat({ value, label, tone, sub, info }: { value: ReactNode; label: string; tone?: 'ok' | 'warn' | 'no'; sub?: string; info?: string }) {
+  return <div className={`stat2 ${tone ?? ''}`}><b>{value}</b><span>{info ? <>{label.replace(/\s*\S+$/, ' ')}<span style={{ whiteSpace: 'nowrap' }}>{label.match(/\S+$/)?.[0]}<Info text={info} label={`About “${label}”`} /></span></> : label}</span>{sub && <small>{sub}</small>}</div>
 }
 
 export function PageLink({ pageId, slug, children }: { pageId: number; slug: string; children: ReactNode }) {

@@ -1,0 +1,55 @@
+/* ---------- 16-step design chain ---------- */
+.chain { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(8, 1fr); row-gap: 26px; counter-reset: step; }
+.chain-node { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; }
+.chain-node::after { content: ""; position: absolute; top: 22px; left: calc(50% + 26px); width: calc(100% - 52px); height: 2px; background: repeating-linear-gradient(90deg, var(--border-strong) 0 5px, transparent 5px 9px); transition: background .4s; }
+.chain-node:nth-child(8n)::after { display: none; }
+.chain-node.is-done::after { background: linear-gradient(90deg, var(--accent), var(--accent)); }
+.chain-node.is-done + .chain-node.is-doing::after { background: repeating-linear-gradient(90deg, var(--accent) 0 5px, transparent 5px 9px); }
+.chain-dot { position: relative; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; border: 2px solid var(--border-strong); background: var(--surface); color: var(--text-muted); font-size: 12px; cursor: default; transition: transform .2s var(--ease), box-shadow .3s, background .3s, border-color .3s; padding: 0; }
+.chain-dot:not([disabled]) { cursor: pointer; }
+.chain-dot:not([disabled]):hover { transform: scale(1.1); border-color: var(--accent); }
+.is-doing .chain-dot { border-color: var(--accent); color: var(--accent-text); background: var(--accent-soft); box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 50%, transparent); animation: pulse 2.2s infinite; }
+.is-done .chain-dot { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: 0 6px 14px -6px var(--accent); }
+.chain-star { position: absolute; top: -4px; right: -4px; color: var(--accent); background: var(--surface); border-radius: 50%; padding: 1px; }
+.is-done .chain-star { color: #fff; background: var(--primary); }
+.chain-label { font: 500 11.5px/1.25 var(--font-ui); color: var(--text-muted); text-align: center; max-width: 96px; }
+.is-doing .chain-label, .is-done .chain-label { color: var(--text); }
+.chain-sm { row-gap: 16px; }
+.chain-sm .chain-dot { width: 32px; height: 32px; font-size: 10.5px; }
+.chain-sm .chain-node::after { top: 15px; left: calc(50% + 20px); width: calc(100% - 40px); }
+.chain-sm .chain-label { font-size: 10.5px; }
+.chain-scrim { position: fixed; inset: 0; z-index: 40; }
+.chain-menu { position: absolute; top: 52px; z-index: 41; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 12px; padding: 8px; box-shadow: var(--shadow-md); display: flex; flex-direction: column; gap: 2px; width: 210px; }
+.chain-menu b { font: 600 12px/1.3 var(--font-ui); padding: 4px 8px 8px; color: var(--text-muted); }
+.chain-menu button { border: 0; background: transparent; text-align: left; padding: 8px 10px; border-radius: 8px; cursor: pointer; font-size: 13.5px; }
+.chain-menu button:hover { background: var(--surface-2); }
+.chain-menu button.on { background: var(--accent-soft); color: var(--accent-text); font-weight: 600; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent); } 70% { box-shadow: 0 0 0 10px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+
+@media (max-width: 960px) {
+  .chain { grid-template-columns: repeat(4, 1fr); }
+  .chain-node:nth-child(8n)::after { display: block; }
+  .chain-node:nth-child(4n)::after { display: none; }
+}
+@media (max-width: 520px) {
+  .chain { grid-template-columns: 1fr; row-gap: 0; }
+  .chain-node { flex-direction: row; gap: 14px; padding: 7px 0; align-items: center; }
+  .chain-label { text-align: left; max-width: none; font-size: 13.5px; }
+  .chain-node::after, .chain-node:nth-child(4n)::after, .chain-node:nth-child(8n)::after { display: block; top: 44px; left: 21px; width: 2px; height: calc(100% - 30px); background: repeating-linear-gradient(180deg, var(--border-strong) 0 5px, transparent 5px 9px); }
+  .chain-node.is-done::after { background: var(--accent); }
+  .chain-node:last-child::after { display: none; }
+  .chain-sm .chain-node::after { left: 15px; top: 36px; }
+  .chain-menu { top: 40px; left: 40px; }
+}
+
+/* lockup + product name */
+.lockup { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.lockup-text { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+.lockup-uni { font: 600 15px/1.15 var(--font-display); letter-spacing: .01em; }
+.lockup-dept { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+.lockup-inverse .lockup-dept { color: rgb(255 255 255 / 70%); }
+.product-name { display: inline-flex; align-items: center; gap: 10px; }
+.product-name span { display: flex; flex-direction: column; line-height: 1.1; }
+.product-name b { font: 600 16px/1.1 var(--font-display); }
+.product-name i { font: normal 500 10.5px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); margin-top: 3px; }
+.product-name.lg b { font-size: 20px; }

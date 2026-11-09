@@ -1,0 +1,44 @@
+/*
+ * Design tokens — KLE institutional maroon on warm ivory. Light only: the workspace is a
+ * documentation product, so there is one carefully tuned theme rather than a dark dashboard mode.
+ * Legacy token names (--primary, --accent, --ai …) are kept so older screens inherit the palette.
+ */
+:root {
+  --bg: #fdf9f6;
+  --surface: #ffffff;
+  --surface-2: #faf4f1;
+  --surface-3: #f2e7e4;
+  --blush: #fbeeed;
+  --blush-2: #f7dede;
+  --border: #eadfdb;
+  --border-strong: #d8c7c2;
+  --rule: #efe6e2;
+  --text: #1e1618;
+  --text-2: #3d3235;
+  --text-muted: #6f6265;
+  --maroon: #9a1b24;
+  --maroon-deep: #7a1520;
+  --maroon-ink: #5c0f18;
+  --primary: #9a1b24;
+  --primary-hover: #7a1520;
+  --on-primary: #ffffff;
+  --accent: #9a1b24;
+  --accent-soft: #f8e3e2;
+  --accent-text: #8a1822;
+  --on-accent: #ffffff;
+  --ok: #1b8a57;      --ok-soft: #e1f4ea;
+  --warn: #a8630a;    --warn-soft: #fcefd8;  --amber: #d98a1f;
+  --danger: #b42318;  --danger-soft: #fde6e3;
+  --info: #2b5f8a;    --info-soft: #e3eef7;
+  --ai: #9a1b24;      --ai-soft: #fbeeed;  --ai-line: #ecd2d0;
+  --predicted: #7d7370; --measured: #9a1b24;
+  --shadow-sm: 0 1px 2px rgb(90 30 30 / 5%), 0 1px 1px rgb(90 30 30 / 3%);
+  --shadow-md: 0 10px 28px -12px rgb(90 30 30 / 20%), 0 2px 6px rgb(90 30 30 / 5%);
+  --shadow-lg: 0 28px 60px -22px rgb(70 20 25 / 32%);
+  --radius: 12px; --radius-sm: 8px; --radius-lg: 18px;
+  --font-ui: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Source Serif 4", "Source Serif Pro", Georgia, "Times New Roman", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
+  --ease: cubic-bezier(.22,.8,.3,1);
+  color-scheme: light;
+}

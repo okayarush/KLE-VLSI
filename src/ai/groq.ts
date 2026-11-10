@@ -39,20 +39,23 @@ export interface AiStatus {
 
 let cachedStatus: AiStatus | null = null
 
-export async function getAiStatus(): Promise<AiStatus> {
-  if (cachedStatus) return cachedStatus
+export async function getAiStatus(forceRefresh = false): Promise<AiStatus> {
+  if (cachedStatus && cachedStatus.configured && !forceRefresh) return cachedStatus
   try {
     const res = await fetch('/api/ai/health')
     if (res.ok) {
-      cachedStatus = await res.json()
-      return cachedStatus!
+      const data = await res.json()
+      if (data.configured) {
+        cachedStatus = data
+      }
+      return data
     }
   } catch {
     // server unreachable / dev mode fallback
   }
   return {
     configured: false,
-    model: 'llama-3.3-70b-versatile (offline)',
+    model: 'openai/gpt-oss-120b (offline fallback)',
     provider: 'Groq Cloud',
   }
 }
